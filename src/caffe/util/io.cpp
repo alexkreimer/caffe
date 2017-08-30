@@ -14,6 +14,7 @@
 #include <fstream>  // NOLINT(readability/streams)
 #include <string>
 #include <vector>
+#include <tuple>
 
 #include "caffe/common.hpp"
 #include "caffe/proto/caffe.pb.h"
@@ -114,6 +115,51 @@ static bool matchExt(const std::string & fn,
   if ( en == "jpg" && ext == "jpeg" )
     return true;
   return false;
+}
+
+bool
+ReadImagesToDatum(const std::pair<std::string, std::string> &filenames, const int label,
+                  const int height, const int width, const bool is_color, Datum* datum)
+{
+    cv::Mat
+        cv_img1 = ReadImageToCVMat(filenames.first, height, width, is_color),
+        cv_img2 = ReadImageToCVMat(filenames.second, height, width, is_color);
+    
+    if (!cv_img1.data || !cv_img2.data)
+        return false;
+
+    CV_Assert(cv_img1.size()==cv::Size(width, height));
+    CV_Assert(cv_img2.size()==cv::Size(width, height));    
+    
+    datum->set_channels(cv_img1.channels() + cv_img2.channels());
+    datum->set_height(cv_img1.rows);
+    datum->set_width(cv_img1.cols);
+    datum->clear_data();
+    datum->clear_float_data();
+    datum->set_encoded(false);
+    int datum_channels = datum->channels();
+    int datum_height = datum->height();
+    int datum_width = datum->width();
+    int datum_size = datum_channels * datum_height * datum_width;
+    std::string buffer(datum_size, ' ');
+
+    int i, nplanes = cv_img1.channels();
+    std::vector<cv::Mat> planes(nplanes*2);
+    for( i=0; i < nplanes*2; i++ )
+    {
+        planes[i] = cv::Mat(height, width, CV_8U, &buffer[width*height*i]);
+    }
+
+    if (nplanes==3)
+    { // RGB -> BGR
+        std::swap(planes[0], planes[2]);
+        std::swap(planes[3], planes[5]);
+    }
+    cv::split(cv_img1, &planes[0]);
+    cv::split(cv_img2, &planes[nplanes]);
+    datum->set_data(buffer);
+    datum->set_label(label);
+    return true;
 }
 
 bool ReadImageToDatum(const string& filename, const int label,

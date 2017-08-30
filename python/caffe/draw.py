@@ -10,6 +10,7 @@ Caffe network visualization: draw the NetParameter protobuffer.
 """
 
 from caffe.proto import caffe_pb2
+import collections
 
 """
 pydot is not supported under python 3 and pydot2 doesn't work properly.
@@ -104,11 +105,11 @@ def get_layer_label(layer, rankdir):
                       pooling_types_dict[layer.pooling_param.pool],
                       layer.type,
                       separator,
-                      layer.pooling_param.kernel_size[0] if len(layer.pooling_param.kernel_size._values) else 1,
+                      layer.pooling_param.kernel_size[0] if isinstance(layer.pooling_param.kernel_size, collections.Iterable) else 1,
                       separator,
-                      layer.pooling_param.stride[0] if len(layer.pooling_param.stride._values) else 1,
+                      layer.pooling_param.stride[0] if isinstance(layer.pooling_param.stride, collections.Iterable) else 1,
                       separator,
-                      layer.pooling_param.pad[0] if len(layer.pooling_param.pad._values) else 0)
+                      layer.pooling_param.pad[0] if isinstance(layer.pooling_param.pad, collections.Iterable) else 0)
     else:
         node_label = '"%s%s(%s)"' % (layer.name, separator, layer.type)
     return node_label
