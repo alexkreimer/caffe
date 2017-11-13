@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
     
     // sequential
     string key_str = caffe::format_int(line_id, 8) + "_" + std::get<0>(lines[line_id]) + "_" + std::get<1>(lines[line_id]);
+    datum_label.set_param(key_str);
 
     string out1;
     CHECK(datum_label.SerializeToString(&out1));
@@ -169,12 +170,19 @@ int main(int argc, char** argv) {
   std::cout << "writing images lmdb..." << std::endl;
   count = 0;
   for (int line_id = 0; line_id < lines.size(); ++line_id) {
+    // sequential
+    string key_str = caffe::format_int(line_id, 8) + "_" + std::get<0>(lines[line_id]) + "_" + std::get<1>(lines[line_id]);
+      
     // the set_label() is used only for sanity checks
     bool status;
     std::string enc = encode_type;
     auto image_files = std::make_pair(std::get<0>(lines[line_id]), std::get<1>(lines[line_id]));
     status = ReadImagesToDatum(image_files, line_id, resize_height, resize_width, is_color, &datum_images);
-    if (status == false) continue;
+    if (status == false)
+    {
+        LOG(ERROR) << "Skeep image pair " << key_str << std::endl;
+        continue;
+    }
     if (check_size) {
       if (!data_size_initialized) {
         data_size = datum_images.channels() * datum_images.height() * datum_images.width();
@@ -185,9 +193,8 @@ int main(int argc, char** argv) {
             << data.size();
       }
     }
-    // sequential
-    string key_str = caffe::format_int(line_id, 8) + "_" + std::get<0>(lines[line_id]) + "_" + std::get<1>(lines[line_id]);
     datum_images.set_label(line_id);
+    datum_images.set_param(key_str);
     // Put in db
     string out;
     CHECK(datum_images.SerializeToString(&out));

@@ -41,6 +41,8 @@ def parse_log(path_to_log):
         last_time = start_time
 
         for line in f:
+            if not line.startswith('I0'):
+                continue
             iteration_match = regex_iteration.search(line)
             if iteration_match:
                 iteration = float(iteration_match.group(1))
